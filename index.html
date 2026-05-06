@@ -156,10 +156,17 @@ let viewMonth=new Date();viewMonth.setDate(1);viewMonth.setHours(0,0,0,0);
 let rescheduleNewDate=null,rescheduleNewTime=null;
 
 function today(){const d=new Date();d.setHours(0,0,0,0);return d;}
-function dateKey(d){return d instanceof Date?d.toISOString().slice(0,10):d;}
+// Always store dates as "YYYY-MM-DD" strings to avoid UTC timezone shifts.
+// Use T12:00:00 when a Date object is needed so no timezone flips the day.
+function dateKey(d){
+  if(typeof d==='string')return d;
+  const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function parseDate(str){return new Date(str+'T12:00:00');}
 function slotsForDate(d){
   const key=typeof d==='string'?d:dateKey(d);
-  const dt=typeof d==='string'?new Date(d+'T12:00:00'):d;
+  const dt=parseDate(key);
   const av=AVAILABILITY[dt.getDay()];
   if(!av||!av.open||BLOCKED_DATES.includes(key))return[];
   const taken=BOOKED_SLOTS[key]||[];
@@ -194,22 +201,23 @@ function page2(){
   const year=viewMonth.getFullYear(),month=viewMonth.getMonth();
   const firstDay=new Date(year,month,1).getDay();
   const daysInMonth=new Date(year,month+1,0).getDate();
-  const todayD=today();
+  const todayKey=dateKey(today());
   let cells='';
   DAYS_SHORT.forEach(d=>{cells+=`<div class="day-label">${d}</div>`;});
   for(let i=0;i<firstDay;i++)cells+=`<div class="day-cell empty"></div>`;
   for(let d=1;d<=daysInMonth;d++){
-    const dt=new Date(year,month,d);
+    // Build Date at noon local time so getDay() is always correct
+    const dt=new Date(year,month,d,12,0,0);
     const key=dateKey(dt);
-    const isPast=dt<todayD,isBlocked=BLOCKED_DATES.includes(key);
-    const slots=slotsForDate(dt);
+    const isPast=key<todayKey,isBlocked=BLOCKED_DATES.includes(key);
+    const slots=slotsForDate(key);
     const unavail=!AVAILABILITY[dt.getDay()]?.open||slots.length===0||isBlocked;
-    const isSel=state.date&&dateKey(state.date)===key;
+    const isSel=state.date===key;
     let cls='day-cell';
     if(isPast)cls+=' past';
     else if(isBlocked)cls+=' blocked';
     else if(unavail)cls+=' unavailable';
-    else{cls+=' has-slots';if(dt.getTime()===todayD.getTime())cls+=' today';}
+    else{cls+=' has-slots';if(key===todayKey)cls+=' today';}
     if(isSel)cls+=' selected';
     cells+=`<div class="${cls}"${!isPast&&!unavail&&!isBlocked?` data-date="${key}"`:''}>${d}</div>`;
   }
@@ -217,7 +225,7 @@ function page2(){
   <div class="section-label">Pick a date</div>
   <div class="cal-header"><button class="nav-btn" id="prev-mo">&#8249;</button><div class="month-title">${MONTHS[month]} ${year}</div><button class="nav-btn" id="next-mo">&#8250;</button></div>
   <div class="day-grid">${cells}</div>
-  ${state.date?`<div class="section-label">Available times — ${state.date.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</div><div class="time-grid">${slotsForDate(state.date).map(t=>`<div class="time-slot${state.time===t?' selected':''}" data-time="${t}">${t}</div>`).join('')}</div>`:''}
+  ${state.date?`<div class="section-label">Available times — ${parseDate(state.date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</div><div class="time-grid">${slotsForDate(state.date).map(t=>`<div class="time-slot${state.time===t?' selected':''}" data-time="${t}">${t}</div>`).join('')}</div>`:''}
   <button class="btn-primary" id="next2" ${!state.date||!state.time?'disabled':''}>Continue</button>`;
 }
 
@@ -241,7 +249,7 @@ function page3(){
 
 function page4(){
   const svc=SERVICES.find(s=>s.id===state.service);
-  const ds=state.date.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const ds=parseDate(state.date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   return `<button class="btn-back" id="back4">← Back</button>
   <div class="section-label">Review & confirm</div>
   <div class="summary-box">
@@ -258,7 +266,7 @@ function page4(){
 
 function pageConfirm(){
   const svc=SERVICES.find(s=>s.id===state.service);
-  const ds=state.date.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const ds=parseDate(state.date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   const newV=(CUSTOMER_VISITS[state.name]||0);
   const milestone=isMilestone(newV);
   return `<div class="confirmation">
@@ -287,7 +295,7 @@ function pageConfirm(){
 
 function pageManage(){
   const svc=SERVICES.find(s=>s.id===state.service);
-  const ds=state.date.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const ds=parseDate(state.date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   return `<div style="padding-top:0.5rem;">
     <div class="section-label">Manage your appointment</div>
     <div class="cancel-card">
@@ -309,15 +317,15 @@ function pageReschedule(){
   const year=viewMonth.getFullYear(),month=viewMonth.getMonth();
   const firstDay=new Date(year,month,1).getDay();
   const daysInMonth=new Date(year,month+1,0).getDate();
-  const todayD=today();
+  const todayKey=dateKey(today());
   let cells='';
   DAYS_SHORT.forEach(d=>{cells+=`<div class="day-label">${d}</div>`;});
   for(let i=0;i<firstDay;i++)cells+=`<div class="day-cell empty"></div>`;
   for(let d=1;d<=daysInMonth;d++){
-    const dt=new Date(year,month,d);
+    const dt=new Date(year,month,d,12,0,0);
     const key=dateKey(dt);
-    const isPast=dt<todayD;
-    const slots=slotsForDate(dt);
+    const isPast=key<todayKey;
+    const slots=slotsForDate(key);
     const unavail=!AVAILABILITY[dt.getDay()]?.open||slots.length===0||BLOCKED_DATES.includes(key);
     const isSel=rescheduleNewDate===key;
     let cls='day-cell';
@@ -352,7 +360,7 @@ function attach(){
   on('back2','click',()=>{state.page=1;render();});
   on('prev-mo','click',()=>{viewMonth.setMonth(viewMonth.getMonth()-1);render();});
   on('next-mo','click',()=>{viewMonth.setMonth(viewMonth.getMonth()+1);render();});
-  document.querySelectorAll('[data-date]').forEach(el=>el.addEventListener('click',()=>{const p=el.dataset.date.split('-');state.date=new Date(+p[0],+p[1]-1,+p[2]);state.time=null;render();}));
+  document.querySelectorAll('[data-date]').forEach(el=>el.addEventListener('click',()=>{state.date=el.dataset.date;state.time=null;render();}));
   document.querySelectorAll('[data-time]').forEach(el=>el.addEventListener('click',()=>{state.time=el.dataset.time;render();}));
   on('next2','click',()=>{state.page=3;render();});
   on('back3','click',()=>{state.page=2;render();});
@@ -364,9 +372,8 @@ function attach(){
   on('next3','click',()=>{state.page=4;render();});
   on('back4','click',()=>{state.page=3;render();});
   on('confirm-btn','click',()=>{
-    const key=dateKey(state.date);
-    if(!BOOKED_SLOTS[key])BOOKED_SLOTS[key]=[];
-    BOOKED_SLOTS[key].push(state.time);
+    if(!BOOKED_SLOTS[state.date])BOOKED_SLOTS[state.date]=[];
+    BOOKED_SLOTS[state.date].push(state.time);
     CUSTOMER_VISITS[state.name]=(CUSTOMER_VISITS[state.name]||0)+1;
     state.page=5;render();
   });
@@ -378,7 +385,7 @@ function attach(){
   on('back-manage','click',()=>{state.page=6;render();});
   document.querySelectorAll('[data-rdate]').forEach(el=>el.addEventListener('click',()=>{rescheduleNewDate=el.dataset.rdate;rescheduleNewTime=null;render();}));
   document.querySelectorAll('[data-rtime]').forEach(el=>el.addEventListener('click',()=>{rescheduleNewTime=el.dataset.rtime;render();}));
-  on('confirm-reschedule','click',()=>{const p=rescheduleNewDate.split('-');state.date=new Date(+p[0],+p[1]-1,+p[2]);state.time=rescheduleNewTime;state.page=5;render();});
+  on('confirm-reschedule','click',()=>{state.date=rescheduleNewDate;state.time=rescheduleNewTime;state.page=5;render();});
 }
 
 render();
