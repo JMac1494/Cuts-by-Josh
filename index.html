@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cuts by Josh — Book an Appointment</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--cream:#fff4ea;--black:#111;--muted:#7a6c60;--border:rgba(0,0,0,0.1);--success-bg:#e8f5ee;--success:#2d6a4f;}
+body{background:var(--cream);font-family:'DM Sans',sans-serif;color:var(--black);min-height:100vh;}
+.header{background:var(--black);padding:1.1rem 1.5rem;display:flex;align-items:center;gap:12px;}
+.logo-img{width:42px;height:42px;border-radius:50%;object-fit:cover;}
+.logo-text{font-family:'Playfair Display',serif;font-size:20px;color:#fff4ea;}
+.logo-sub{font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,244,234,0.4);margin-top:2px;}
+.steps{display:flex;justify-content:center;background:var(--black);padding:0 1.5rem 1rem;}
+.step{display:flex;align-items:center;gap:5px;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:rgba(255,244,234,0.28);padding:0 0.7rem;}
+.step.active{color:#fff4ea;}
+.step.done{color:rgba(255,244,234,0.52);}
+.step-num{width:17px;height:17px;border-radius:50%;background:rgba(255,244,234,0.08);font-size:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.step.active .step-num{background:#fff4ea;color:var(--black);font-weight:500;}
+.step.done .step-num{background:rgba(255,244,234,0.22);}
+.step-line{width:18px;height:1px;background:rgba(255,244,234,0.1);}
+.body{padding:1.5rem 1.4rem 3rem;max-width:540px;margin:0 auto;}
+.section-label{font-size:10px;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:0.85rem;}
+.services{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1.6rem;}
+.service-card{background:white;border:1.5px solid var(--border);border-radius:9px;padding:0.85rem 0.95rem;cursor:pointer;transition:border-color 0.14s,background 0.14s;}
+.service-card:hover{border-color:rgba(0,0,0,0.2);}
+.service-card.selected{border-color:var(--black);background:var(--black);color:#fff4ea;}
+.service-name{font-size:12px;font-weight:500;margin-bottom:3px;}
+.service-meta{font-size:11px;color:var(--muted);display:flex;justify-content:space-between;}
+.service-card.selected .service-meta{color:rgba(255,244,234,0.5);}
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.85rem;}
+.month-title{font-family:'Playfair Display',serif;font-size:16px;font-weight:500;}
+.nav-btn{background:none;border:1px solid var(--border);border-radius:5px;width:26px;height:26px;cursor:pointer;font-size:13px;color:var(--black);}
+.nav-btn:hover{background:white;}
+.day-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:1.6rem;}
+.day-label{text-align:center;font-size:9px;font-weight:500;letter-spacing:0.07em;text-transform:uppercase;color:var(--muted);padding-bottom:4px;}
+.day-cell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:6px;font-size:11px;cursor:pointer;border:1.5px solid transparent;background:white;transition:all 0.11s;}
+.day-cell:hover:not(.empty):not(.past):not(.unavailable):not(.blocked){border-color:rgba(0,0,0,0.2);}
+.day-cell.empty{background:none;cursor:default;}
+.day-cell.past{color:rgba(0,0,0,0.16);cursor:default;background:none;}
+.day-cell.unavailable,.day-cell.blocked{color:rgba(0,0,0,0.2);cursor:not-allowed;background:rgba(0,0,0,0.02);}
+.day-cell.selected{background:var(--black);color:#fff4ea;border-color:var(--black);}
+.day-cell.today{font-weight:500;border-color:rgba(0,0,0,0.2);}
+.day-cell.has-slots{position:relative;}
+.day-cell.has-slots::after{content:'';width:3px;height:3px;border-radius:50%;background:var(--success);position:absolute;bottom:3px;left:50%;transform:translateX(-50%);}
+.day-cell.selected::after{background:rgba(255,244,234,0.4)!important;}
+.time-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:1.6rem;}
+.time-slot{background:white;border:1.5px solid var(--border);border-radius:6px;padding:0.5rem;text-align:center;font-size:12px;cursor:pointer;transition:all 0.11s;}
+.time-slot:hover{border-color:rgba(0,0,0,0.26);}
+.time-slot.selected{background:var(--black);color:#fff4ea;border-color:var(--black);}
+.form-group{margin-bottom:0.95rem;}
+.form-label{font-size:10px;font-weight:500;letter-spacing:0.07em;color:var(--muted);display:block;margin-bottom:4px;text-transform:uppercase;}
+.form-input{width:100%;background:white;border:1.5px solid var(--border);border-radius:7px;padding:0.58rem 0.82rem;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--black);outline:none;transition:border-color 0.11s;}
+.form-input:focus{border-color:var(--black);}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+.notify-opts{display:flex;gap:7px;margin-bottom:1.4rem;}
+.notify-opt{flex:1;background:white;border:1.5px solid var(--border);border-radius:7px;padding:0.6rem;text-align:center;font-size:11px;cursor:pointer;transition:all 0.11s;}
+.notify-opt.selected{border-color:var(--black);background:var(--black);color:#fff4ea;}
+.notify-opt-label{font-weight:500;margin-bottom:2px;}
+.notify-opt-sub{font-size:10px;opacity:0.55;}
+.summary-box{background:white;border:1px solid var(--border);border-radius:9px;padding:0.95rem 1.1rem;margin-bottom:1.3rem;}
+.summary-row{display:flex;justify-content:space-between;font-size:12px;padding:3px 0;}
+.summary-row .label{color:var(--muted);}
+.summary-row.total{font-weight:500;font-size:13px;padding-top:8px;margin-top:5px;border-top:1px solid var(--border);}
+.btn-primary{width:100%;background:var(--black);color:#fff4ea;border:none;border-radius:9px;padding:0.85rem;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;letter-spacing:0.03em;transition:opacity 0.14s;}
+.btn-primary:hover{opacity:0.82;}
+.btn-primary:disabled{opacity:0.28;cursor:not-allowed;}
+.btn-back{background:none;border:1px solid var(--border);border-radius:6px;padding:0.42rem 0.85rem;font-family:'DM Sans',sans-serif;font-size:11px;cursor:pointer;color:var(--muted);margin-bottom:1.3rem;}
+.btn-back:hover{color:var(--black);}
+.policy-banner{background:white;border:1px solid var(--border);border-left:3px solid var(--black);border-radius:0 8px 8px 0;padding:0.9rem 1rem;margin-bottom:1.5rem;}
+.policy-title{font-size:11px;font-weight:500;letter-spacing:0.07em;text-transform:uppercase;margin-bottom:5px;}
+.policy-text{font-size:12px;color:var(--muted);line-height:1.6;}
+.confirmation{text-align:center;padding:2rem 0.8rem;}
+.confirm-icon{width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.1rem;}
+.confirm-title{font-family:'Playfair Display',serif;font-size:21px;font-weight:500;margin-bottom:0.35rem;}
+.confirm-sub{font-size:12px;color:var(--muted);margin-bottom:1.6rem;line-height:1.6;}
+.confirm-card{background:white;border:1px solid var(--border);border-radius:10px;padding:1rem 1.2rem;text-align:left;margin-bottom:1.3rem;}
+.confirm-card-row{display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid var(--border);}
+.confirm-card-row:last-child{border-bottom:none;}
+.confirm-card-row .lbl{color:var(--muted);}
+.notify-pills{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;}
+.notify-pill{background:var(--success-bg);color:var(--success);font-size:11px;font-weight:500;padding:4px 10px;border-radius:20px;}
+.divider{height:1px;background:var(--border);margin:1.3rem 0;}
+.loyalty-banner{background:var(--black);color:#fff4ea;border-radius:9px;padding:0.85rem 1rem;margin-bottom:1rem;display:flex;align-items:center;gap:12px;}
+.loyalty-progress{display:flex;gap:5px;margin-top:0.6rem;}
+.loyalty-stamp{width:26px;height:26px;border-radius:50%;border:1.5px solid rgba(255,244,234,0.25);display:flex;align-items:center;justify-content:center;font-size:12px;}
+.loyalty-stamp.filled{background:#fff4ea;border-color:#fff4ea;}
+.cancel-card{background:white;border:1px solid var(--border);border-radius:10px;padding:1.1rem 1.2rem;margin-bottom:1rem;}
+.cancel-actions{display:flex;gap:8px;margin-top:1rem;}
+.btn-action{flex:1;background:none;border:1.5px solid var(--border);border-radius:7px;padding:0.6rem;font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;font-weight:500;transition:all 0.12s;}
+.btn-action.danger{border-color:rgba(160,16,16,0.3);color:#a01010;}
+.btn-action.go{background:var(--black);color:#fff4ea;border-color:var(--black);}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <img class="logo-img" src="CBJ_Logo.png" alt="Cuts by Josh" onerror="this.style.display='none'">
+  <div>
+    <div class="logo-text">Cuts by Josh</div>
+    <div class="logo-sub">Premium Barbering</div>
+  </div>
+</div>
+
+<div class="steps" id="step-bar">
+  <div class="step active" id="s1"><div class="step-num">1</div>Service</div>
+  <div class="step-line"></div>
+  <div class="step" id="s2"><div class="step-num">2</div>Date</div>
+  <div class="step-line"></div>
+  <div class="step" id="s3"><div class="step-num">3</div>Details</div>
+  <div class="step-line"></div>
+  <div class="step" id="s4"><div class="step-num">4</div>Confirm</div>
+</div>
+
+<div class="body" id="body"></div>
+
+<script>
+// ─── SHARED DATA (in production, replace with API calls to your backend) ───
+const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DAYS_SHORT=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const ALL_SLOTS=['9:00 am','9:30 am','10:00 am','10:30 am','11:00 am','11:30 am','12:00 pm','12:30 pm','2:00 pm','2:30 pm','3:00 pm','3:30 pm','4:00 pm','4:30 pm','5:00 pm'];
+
+// In production these come from your database
+let SERVICES=[
+  {id:'classic',name:'Classic Cut',duration:'30 min',price:'£18'},
+  {id:'fade',name:'Skin Fade',duration:'45 min',price:'£22'},
+  {id:'beard',name:'Beard Trim',duration:'20 min',price:'£12'},
+  {id:'combo',name:'Cut & Beard',duration:'60 min',price:'£30'},
+  {id:'fadebeard',name:'Skin Fade & Beard Trim',duration:'60 min',price:'£32'},
+  {id:'kids',name:'Kids Cut',duration:'25 min',price:'£14'},
+  {id:'student',name:'Students 11–18',duration:'30 min',price:'£15'},
+  {id:'senior',name:'Senior Citizens 60+',duration:'30 min',price:'£15'},
+];
+
+let AVAILABILITY={
+  0:{open:false,start:'09:00',end:'17:00'},
+  1:{open:true,start:'09:00',end:'17:30'},
+  2:{open:true,start:'09:00',end:'17:30'},
+  3:{open:true,start:'09:00',end:'17:30'},
+  4:{open:true,start:'09:00',end:'17:30'},
+  5:{open:true,start:'09:00',end:'17:30'},
+  6:{open:true,start:'09:00',end:'15:00'},
+};
+
+// Simulated booked slots — in production these come from your DB
+let BOOKED_SLOTS={};
+let BLOCKED_DATES=[];
+let CUSTOMER_VISITS={};
+
+// ─── APP STATE ───
+let state={page:1,service:null,date:null,time:null,name:'',email:'',phone:'',notifyEmail:true,notifySMS:true};
+let viewMonth=new Date();viewMonth.setDate(1);viewMonth.setHours(0,0,0,0);
+let rescheduleNewDate=null,rescheduleNewTime=null;
+
+function today(){const d=new Date();d.setHours(0,0,0,0);return d;}
+function dateKey(d){return d instanceof Date?d.toISOString().slice(0,10):d;}
+function slotsForDate(d){
+  const key=typeof d==='string'?d:dateKey(d);
+  const dt=typeof d==='string'?new Date(d+'T12:00:00'):d;
+  const av=AVAILABILITY[dt.getDay()];
+  if(!av||!av.open||BLOCKED_DATES.includes(key))return[];
+  const taken=BOOKED_SLOTS[key]||[];
+  return ALL_SLOTS.filter(s=>!taken.includes(s));
+}
+function setSteps(n){for(let i=1;i<=4;i++){const el=document.getElementById('s'+i);if(el)el.className='step'+(i===n?' active':i<n?' done':'');}}
+function getVisits(name){return CUSTOMER_VISITS[name]||0;}
+function isMilestone(v){return v>0&&v%5===0;}
+
+function render(){
+  setSteps(state.page);
+  const body=document.getElementById('body');
+  if(state.page===1)body.innerHTML=page1();
+  else if(state.page===2)body.innerHTML=page2();
+  else if(state.page===3)body.innerHTML=page3();
+  else if(state.page===4)body.innerHTML=page4();
+  else if(state.page===5)body.innerHTML=pageConfirm();
+  else if(state.page===6)body.innerHTML=pageManage();
+  else if(state.page===7)body.innerHTML=pageReschedule();
+  else if(state.page===8)body.innerHTML=pageCancelled();
+  attach();
+}
+
+function page1(){
+  return `<div class="section-label">Choose your service</div>
+  <div class="services">${SERVICES.map(s=>`<div class="service-card${state.service===s.id?' selected':''}" data-svc="${s.id}"><div class="service-name">${s.name}</div><div class="service-meta"><span>${s.duration}</span><span>${s.price}</span></div></div>`).join('')}</div>
+  <div class="policy-banner"><div class="policy-title">Cancellation & no-show policy</div><div class="policy-text">We understand life happens! If you need to cancel, please let us know at least <strong>1 hour before</strong> your appointment and please reschedule for another day. Repeated no-shows may result in your booking being refused. Thank you for your understanding.</div></div>
+  <button class="btn-primary" id="next1" ${!state.service?'disabled':''}>Continue</button>`;
+}
+
+function page2(){
+  const year=viewMonth.getFullYear(),month=viewMonth.getMonth();
+  const firstDay=new Date(year,month,1).getDay();
+  const daysInMonth=new Date(year,month+1,0).getDate();
+  const todayD=today();
+  let cells='';
+  DAYS_SHORT.forEach(d=>{cells+=`<div class="day-label">${d}</div>`;});
+  for(let i=0;i<firstDay;i++)cells+=`<div class="day-cell empty"></div>`;
+  for(let d=1;d<=daysInMonth;d++){
+    const dt=new Date(year,month,d);
+    const key=dateKey(dt);
+    const isPast=dt<todayD,isBlocked=BLOCKED_DATES.includes(key);
+    const slots=slotsForDate(dt);
+    const unavail=!AVAILABILITY[dt.getDay()]?.open||slots.length===0||isBlocked;
+    const isSel=state.date&&dateKey(state.date)===key;
+    let cls='day-cell';
+    if(isPast)cls+=' past';
+    else if(isBlocked)cls+=' blocked';
+    else if(unavail)cls+=' unavailable';
+    else{cls+=' has-slots';if(dt.getTime()===todayD.getTime())cls+=' today';}
+    if(isSel)cls+=' selected';
+    cells+=`<div class="${cls}"${!isPast&&!unavail&&!isBlocked?` data-date="${key}"`:''}>${d}</div>`;
+  }
+  return `<button class="btn-back" id="back2">← Back</button>
+  <div class="section-label">Pick a date</div>
+  <div class="cal-header"><button class="nav-btn" id="prev-mo">&#8249;</button><div class="month-title">${MONTHS[month]} ${year}</div><button class="nav-btn" id="next-mo">&#8250;</button></div>
+  <div class="day-grid">${cells}</div>
+  ${state.date?`<div class="section-label">Available times — ${state.date.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</div><div class="time-grid">${slotsForDate(state.date).map(t=>`<div class="time-slot${state.time===t?' selected':''}" data-time="${t}">${t}</div>`).join('')}</div>`:''}
+  <button class="btn-primary" id="next2" ${!state.date||!state.time?'disabled':''}>Continue</button>`;
+}
+
+function page3(){
+  const v=getVisits(state.name);
+  const loyalty=state.name&&v>0?`<div class="loyalty-banner"><div style="font-size:20px;flex-shrink:0;">✂</div><div style="font-size:12px;line-height:1.5;"><strong>Welcome back, ${state.name.split(' ')[0]}!</strong> You've had ${v} cuts with us.<div class="loyalty-progress">${[1,2,3,4,5].map(i=>`<div class="loyalty-stamp${(v%5)>=i||v%5===0?' filled':''}"><span style="font-size:9px;color:var(--black);">✂</span></div>`).join('')}</div></div></div>`:'';
+  return `<button class="btn-back" id="back3">← Back</button>
+  <div class="section-label">Your details</div>${loyalty}
+  <div class="form-group"><label class="form-label">Full name</label><input class="form-input" id="inp-name" placeholder="e.g. James Taylor" value="${state.name}"></div>
+  <div class="form-row">
+    <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="inp-email" type="email" placeholder="you@email.com" value="${state.email}"></div>
+    <div class="form-group"><label class="form-label">Mobile</label><input class="form-input" id="inp-phone" type="tel" placeholder="+44 7700 000000" value="${state.phone}"></div>
+  </div>
+  <div class="section-label">Confirmations & reminders</div>
+  <div class="notify-opts">
+    <div class="notify-opt${state.notifyEmail?' selected':''}" id="tog-email"><div class="notify-opt-label">Email</div><div class="notify-opt-sub">Confirmation + 24hr reminder</div></div>
+    <div class="notify-opt${state.notifySMS?' selected':''}" id="tog-sms"><div class="notify-opt-label">SMS</div><div class="notify-opt-sub">Confirmation + 24hr reminder</div></div>
+  </div>
+  <button class="btn-primary" id="next3" ${!state.name||!state.email?'disabled':''}>Review booking</button>`;
+}
+
+function page4(){
+  const svc=SERVICES.find(s=>s.id===state.service);
+  const ds=state.date.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  return `<button class="btn-back" id="back4">← Back</button>
+  <div class="section-label">Review & confirm</div>
+  <div class="summary-box">
+    <div class="summary-row"><span class="label">Service</span><span>${svc.name}</span></div>
+    <div class="summary-row"><span class="label">Date</span><span>${ds}</span></div>
+    <div class="summary-row"><span class="label">Time</span><span>${state.time}</span></div>
+    <div class="summary-row"><span class="label">Duration</span><span>${svc.duration}</span></div>
+    <div class="summary-row"><span class="label">Name</span><span>${state.name}</span></div>
+    <div class="summary-row"><span class="label">Contact</span><span>${state.email}</span></div>
+    <div class="summary-row total"><span>Total</span><span>${svc.price}</span></div>
+  </div>
+  <button class="btn-primary" id="confirm-btn">Confirm Booking</button>`;
+}
+
+function pageConfirm(){
+  const svc=SERVICES.find(s=>s.id===state.service);
+  const ds=state.date.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const newV=(CUSTOMER_VISITS[state.name]||0);
+  const milestone=isMilestone(newV);
+  return `<div class="confirmation">
+    <div class="confirm-icon" style="background:var(--black);"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff4ea" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+    <div class="confirm-title">You're booked in.</div>
+    <div class="confirm-sub">See you soon, ${state.name.split(' ')[0]}. Confirmation sent to your ${[state.notifyEmail?'email':'',state.notifySMS?'phone':''].filter(Boolean).join(' and ')}.</div>
+    ${milestone?`<div class="loyalty-banner" style="text-align:left;margin-bottom:1rem;"><div style="font-size:20px;flex-shrink:0;">🎉</div><div style="font-size:12px;line-height:1.5;"><strong>Loyalty milestone!</strong> This is your ${newV}th visit — thanks for being a loyal customer!</div></div>`:''}
+    <div class="confirm-card">
+      <div class="confirm-card-row"><span class="lbl">Service</span><span>${svc.name}</span></div>
+      <div class="confirm-card-row"><span class="lbl">Date</span><span>${ds}</span></div>
+      <div class="confirm-card-row"><span class="lbl">Time</span><span>${state.time}</span></div>
+      <div class="confirm-card-row"><span class="lbl">Total</span><span>${svc.price}</span></div>
+    </div>
+    <div class="notify-pills">
+      ${state.notifyEmail?'<div class="notify-pill">✓ Email sent</div>':''}
+      ${state.notifySMS?'<div class="notify-pill">✓ SMS sent</div>':''}
+      <div class="notify-pill">✓ 24hr reminder set</div>
+    </div>
+    <div class="divider"></div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn-primary" id="manage-btn" style="background:white;color:var(--black);border:1.5px solid rgba(0,0,0,0.14);">Cancel / Reschedule</button>
+      <button class="btn-primary" id="new-booking">New booking</button>
+    </div>
+  </div>`;
+}
+
+function pageManage(){
+  const svc=SERVICES.find(s=>s.id===state.service);
+  const ds=state.date.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  return `<div style="padding-top:0.5rem;">
+    <div class="section-label">Manage your appointment</div>
+    <div class="cancel-card">
+      <div style="font-size:13px;font-weight:500;margin-bottom:3px;">${svc.name}</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:1rem;">${ds} at ${state.time}</div>
+      <div style="font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:1rem;padding:0.75rem;background:var(--cream);border-radius:7px;">
+        <strong style="color:var(--black);">Our policy:</strong> We understand life happens! Please cancel at least <strong>1 hour before</strong> your appointment and reschedule for another day. Repeated no-shows may result in future bookings being refused.
+      </div>
+      <div class="cancel-actions">
+        <button class="btn-action go" id="go-reschedule">Reschedule</button>
+        <button class="btn-action danger" id="go-cancel">Cancel appointment</button>
+      </div>
+    </div>
+    <button class="btn-back" id="back-confirm">← Back</button>
+  </div>`;
+}
+
+function pageReschedule(){
+  const year=viewMonth.getFullYear(),month=viewMonth.getMonth();
+  const firstDay=new Date(year,month,1).getDay();
+  const daysInMonth=new Date(year,month+1,0).getDate();
+  const todayD=today();
+  let cells='';
+  DAYS_SHORT.forEach(d=>{cells+=`<div class="day-label">${d}</div>`;});
+  for(let i=0;i<firstDay;i++)cells+=`<div class="day-cell empty"></div>`;
+  for(let d=1;d<=daysInMonth;d++){
+    const dt=new Date(year,month,d);
+    const key=dateKey(dt);
+    const isPast=dt<todayD;
+    const slots=slotsForDate(dt);
+    const unavail=!AVAILABILITY[dt.getDay()]?.open||slots.length===0||BLOCKED_DATES.includes(key);
+    const isSel=rescheduleNewDate===key;
+    let cls='day-cell';
+    if(isPast)cls+=' past';
+    else if(unavail)cls+=' blocked';
+    else cls+=' has-slots';
+    if(isSel)cls+=' selected';
+    cells+=`<div class="${cls}"${!isPast&&!unavail?` data-rdate="${key}"`:''}>${d}</div>`;
+  }
+  return `<button class="btn-back" id="back-manage">← Back</button>
+  <div class="section-label">Choose a new date</div>
+  <div class="cal-header"><button class="nav-btn" id="prev-mo">&#8249;</button><div class="month-title">${MONTHS[month]} ${year}</div><button class="nav-btn" id="next-mo">&#8250;</button></div>
+  <div class="day-grid">${cells}</div>
+  ${rescheduleNewDate?`<div class="section-label">Pick a new time</div><div class="time-grid">${slotsForDate(rescheduleNewDate).map(t=>`<div class="time-slot${rescheduleNewTime===t?' selected':''}" data-rtime="${t}">${t}</div>`).join('')}</div>`:''}
+  <button class="btn-primary" id="confirm-reschedule" ${!rescheduleNewDate||!rescheduleNewTime?'disabled':''}>Confirm reschedule</button>`;
+}
+
+function pageCancelled(){
+  return `<div class="confirmation">
+    <div class="confirm-icon" style="background:#a01010;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></div>
+    <div class="confirm-title">Appointment cancelled.</div>
+    <div class="confirm-sub">Your appointment has been cancelled. We hope to see you again — please rebook whenever you're ready.</div>
+    <div class="divider"></div>
+    <button class="btn-primary" id="new-booking">Book a new appointment</button>
+  </div>`;
+}
+
+function attach(){
+  const on=(id,ev,fn)=>{const el=document.getElementById(id);if(el)el.addEventListener(ev,fn);};
+  document.querySelectorAll('[data-svc]').forEach(el=>el.addEventListener('click',()=>{state.service=el.dataset.svc;render();}));
+  on('next1','click',()=>{state.page=2;render();});
+  on('back2','click',()=>{state.page=1;render();});
+  on('prev-mo','click',()=>{viewMonth.setMonth(viewMonth.getMonth()-1);render();});
+  on('next-mo','click',()=>{viewMonth.setMonth(viewMonth.getMonth()+1);render();});
+  document.querySelectorAll('[data-date]').forEach(el=>el.addEventListener('click',()=>{const p=el.dataset.date.split('-');state.date=new Date(+p[0],+p[1]-1,+p[2]);state.time=null;render();}));
+  document.querySelectorAll('[data-time]').forEach(el=>el.addEventListener('click',()=>{state.time=el.dataset.time;render();}));
+  on('next2','click',()=>{state.page=3;render();});
+  on('back3','click',()=>{state.page=2;render();});
+  on('inp-name','input',e=>{state.name=e.target.value;const b=document.getElementById('next3');if(b)b.disabled=!state.name||!state.email;});
+  on('inp-email','input',e=>{state.email=e.target.value;const b=document.getElementById('next3');if(b)b.disabled=!state.name||!state.email;});
+  on('inp-phone','input',e=>{state.phone=e.target.value;});
+  on('tog-email','click',()=>{state.notifyEmail=!state.notifyEmail;render();});
+  on('tog-sms','click',()=>{state.notifySMS=!state.notifySMS;render();});
+  on('next3','click',()=>{state.page=4;render();});
+  on('back4','click',()=>{state.page=3;render();});
+  on('confirm-btn','click',()=>{
+    const key=dateKey(state.date);
+    if(!BOOKED_SLOTS[key])BOOKED_SLOTS[key]=[];
+    BOOKED_SLOTS[key].push(state.time);
+    CUSTOMER_VISITS[state.name]=(CUSTOMER_VISITS[state.name]||0)+1;
+    state.page=5;render();
+  });
+  on('manage-btn','click',()=>{state.page=6;render();});
+  on('new-booking','click',()=>{state={page:1,service:null,date:null,time:null,name:'',email:'',phone:'',notifyEmail:true,notifySMS:true};render();});
+  on('go-reschedule','click',()=>{rescheduleNewDate=null;rescheduleNewTime=null;state.page=7;render();});
+  on('go-cancel','click',()=>{if(confirm('Cancel this appointment?')){state.page=8;render();}});
+  on('back-confirm','click',()=>{state.page=5;render();});
+  on('back-manage','click',()=>{state.page=6;render();});
+  document.querySelectorAll('[data-rdate]').forEach(el=>el.addEventListener('click',()=>{rescheduleNewDate=el.dataset.rdate;rescheduleNewTime=null;render();}));
+  document.querySelectorAll('[data-rtime]').forEach(el=>el.addEventListener('click',()=>{rescheduleNewTime=el.dataset.rtime;render();}));
+  on('confirm-reschedule','click',()=>{const p=rescheduleNewDate.split('-');state.date=new Date(+p[0],+p[1]-1,+p[2]);state.time=rescheduleNewTime;state.page=5;render();});
+}
+
+render();
+</script>
+</body>
+</html>
